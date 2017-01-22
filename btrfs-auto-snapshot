@@ -1,0 +1,58 @@
+#!/bin/bash
+
+SEMVER=0.1.0
+
+SNAPSHOTS_SUBVOLUME="@snapshots"
+ROOT_MOUNT_POINT="/var/tmp/btrfs-auto-snapshot"
+
+function error() {
+	echo "ERROR: $1" 1>&2
+	exit $2
+}
+
+function require() {
+	local command="$1"
+	if ! type "$command" >/dev/null 2>&1; then
+		error "Command '$command' is required." 1
+	fi
+}
+
+function help() {
+	echo "$(basename -- $0) $SEMVER -- Utility to automatically make Btrfs snapshots."
+	echo "GPLv3 - Diego Lago <diego.lago.gonzalez@gmail.com>"
+	echo "Usage: $(basename -- $0) [options] <command>"
+}
+
+function find_root_device() {
+	/bin/df --output=source / | tail -n1
+}
+
+function find_device_fs_type() {
+	local device="$1"
+	/bin/df --output=fstype "$device" | tail -n1
+}
+
+function parse_arguments() {
+	while getopts ":h" opt; do
+		case "$opt" in
+			h)
+				help
+				exit
+			;;
+			\?)
+				error "Invalid option for subcommand: -$OPTARG" 2
+			;;
+			:)
+				error "Option -$OPTARG requires an argument." 2
+			;;
+		esac
+	done
+	return $((OPTIND - 1))
+}
+
+function main() {
+	parse_arguments "$@"
+	shift $?
+}
+
+main "$@"
